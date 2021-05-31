@@ -1,0 +1,60 @@
+version: '3.4'
+
+services:
+  contentservice:
+    image: contentservice
+    depends_on:
+        - databaseservice
+        - eventbus
+    build:
+      context: .
+      dockerfile: ContentService/Dockerfile
+    ports:
+    - "5007:80"
+    - "5008:443"
+  apigateway:
+    image: apigatewayservice
+    depends_on:
+        - eventbus
+        - contentservice
+    build:
+      context: .
+      dockerfile: APIGateway/Dockerfile
+    ports:
+    - "5001:80"
+    - "5002:443"
+  announcementservice:
+    image: announcementservice
+    depends_on:
+        - eventbus
+    build:
+      context: .
+      dockerfile: AnnouncementService/Dockerfile
+    ports:
+      - "5003:80"
+      - "5004:443"
+  databaseservice:
+    image: databasemanagementservice
+    depends_on:
+        - db
+    build:
+      context: .
+      dockerfile: DatabaseManagementService/Dockerfile
+    ports:
+    - "5005:80"
+    - "5006:443"
+  db:
+    image: mongo
+    restart: always
+    environment:
+        MONGO_INITDB_ROOT_USERNAME: root
+        MONGO_INITDB_ROOT_PASSWORD: D@s_!$T_Me1n_KennW0rt!
+        MONGO_INITDB_DATABASE: WeltWerkDb
+    ports:
+    - "27017:27017"
+  eventbus:
+    image: rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"

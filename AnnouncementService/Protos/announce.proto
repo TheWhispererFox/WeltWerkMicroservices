@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+option csharp_namespace = "AnnouncementService";
+
+package announce;
+
+service Announcer {
+  rpc Announce (AnnounceArgs) returns (AnnounceReply);
+}
+
+message AnnounceArgs {
+	string content = 1;
+}
+
+message AnnounceReply {
+	string response = 1;
+}

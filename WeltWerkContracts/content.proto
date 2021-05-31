@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+option csharp_namespace = "ContentService";
+
+package content_service;
+
+service Content {
+  rpc PublishArticle (Article) returns (ContentResponse);
+  rpc DeleteArticle (ArticleRequest) returns (ContentResponse);
+  rpc UpdateArticle (Article) returns (ContentResponse);
+  rpc GetArticle (ArticleRequest) returns (Article);
+  rpc CreateCategory (Category) returns (ContentResponse);
+  rpc DeleteCategory (Category) returns (ContentResponse);
+}
+
+message Article {
+	int32 id = 1;
+	string title = 2;
+	google.protobuf.Timestamp publish_date = 3;
+	repeated Tag tags = 4;
+	Category category = 5;
+}
+
+message Tag {
+	string name = 1;
+}
+
+message ContentResponse {
+	string message = 1;
+}
+
+message ArticleRequest {
+	oneof ArticleCriteria {
+		int32 id = 1;
+		string title = 2;
+	}
+}
+
+message ArticleUpdateRequest {
+	ArticleRequest article = 1;
+	Article content = 2;
+}
+
+message Category {
+	int32 id = 1;
+	string name = 2;
+}

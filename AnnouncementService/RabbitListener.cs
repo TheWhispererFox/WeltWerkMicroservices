@@ -1,0 +1,52 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
+
+namespace AnnouncementService
+{
+    public class RabbitListener
+    {
+        ConnectionFactory Factory { get; set; }
+        IConnection Connection { get; set; }
+        IModel Channel { get; set; }
+        AnnouncementService _announcer;
+
+        public void Register()
+        {
+            Channel.ExchangeDeclare("general_topics", ExchangeType.Topic);
+
+            var queueName = Channel.QueueDeclare().QueueName;
+
+            Channel.QueueBind(queue: queueName, exchange: "general_topics", routingKey: "announce.#");
+
+            var consumer = new EventingBasicConsumer(Channel);
+            consumer.Received += (model, ea) =>
+            {
+                var body = ea.Body.ToArray();
+                var message = Encoding.UTF8.GetString(body);
+
+                //call the announce method
+                _announcer.Announce(new AnnounceArgs() { Content = message }, null);
+            };
+            Channel.BasicConsume(queue: queueName, autoAck: true, consumer: consumer);
+        }
+
+        public void Deregister()
+        {
+            Connection.Close();
+        }
+
+        public RabbitListener(AnnouncementService announcer)
+        {
+            _announcer = announcer;
+            Factory = new ConnectionFactory() { HostName = "host.docker.internal", Port = 5672 };
+            Factory.RequestedHeartbeat = TimeSpan.FromSeconds(60);
+            Connection = Factory.CreateConnection();
+            Channel = Connection.CreateModel();
+        }
+    }
+}

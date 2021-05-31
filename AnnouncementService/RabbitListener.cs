@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
@@ -40,10 +41,10 @@ namespace AnnouncementService
             Connection.Close();
         }
 
-        public RabbitListener(AnnouncementService announcer)
+        public RabbitListener(AnnouncementService announcer, IConfiguration config)
         {
             _announcer = announcer;
-            Factory = new ConnectionFactory() { HostName = "host.docker.internal", Port = 5672 };
+            Factory = new ConnectionFactory() { HostName = config["Services:EventService:HostName"], Port = int.Parse(config["Services:EventService:Port"]) };
             Factory.RequestedHeartbeat = TimeSpan.FromSeconds(60);
             Connection = Factory.CreateConnection();
             Channel = Connection.CreateModel();

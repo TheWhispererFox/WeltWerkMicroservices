@@ -19,6 +19,16 @@ namespace AnnouncementService
             services.AddGrpc();
             services.AddHttpClient<AnnouncementService>();
             services.AddSingleton<RabbitListener>();
+
+            services.AddCors(options =>
+            {
+                options.AddPolicy("default", policy =>
+                {
+                    policy.AllowAnyOrigin()
+                    .AllowAnyMethod()
+                    .AllowAnyHeader();
+                });
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -30,6 +40,8 @@ namespace AnnouncementService
             }
 
             app.UseRouting();
+
+            app.UseCors("default");
 
             app.UseRabbitListener();
 

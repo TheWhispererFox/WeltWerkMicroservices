@@ -44,7 +44,7 @@ namespace AnnouncementService
         public RabbitListener(AnnouncementService announcer, IConfiguration config)
         {
             _announcer = announcer;
-            Factory = new ConnectionFactory() { HostName = config["Services:EventService:HostName"], Port = int.Parse(config["Services:EventService:Port"]) };
+            Factory = new ConnectionFactory() { HostName = "host.docker.internal", Port = 5672 };
             Factory.RequestedHeartbeat = TimeSpan.FromSeconds(60);
             Connection = Factory.CreateConnection();
             Channel = Connection.CreateModel();

@@ -1,17 +1,16 @@
-﻿using Grpc.Core;
+﻿using ContentService.Models;
+using DatabaseManagementService;
+using Google.Protobuf;
+using Grpc.Core;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using System;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
+using MongoDB.Driver;
+using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using RabbitMQ.Client;
-using Microsoft.Extensions.Configuration;
-using RabbitMQ.Client.Events;
-using System.Text;
-using System.Collections.Concurrent;
-using Newtonsoft.Json;
-using DatabaseManagementService;
-using Newtonsoft.Json.Linq;
 
 namespace ContentService.Services
 {
@@ -20,152 +19,132 @@ namespace ContentService.Services
         ILogger<ContentService> _logger;
         IConfiguration _config;
         DatabaseManagement.DatabaseManagementClient _db;
-        //ConnectionFactory _factory;
-        //BlockingCollection<string> respQueue = new BlockingCollection<string>();
-        //IConnection connection;
-        //IBasicProperties props;
-        //EventingBasicConsumer consumer;
-        //string replyQueueName;
-        //IModel channel;
 
         public ContentService(ILogger<ContentService> logger, IConfiguration config, DatabaseManagement.DatabaseManagementClient db)
         {
             _logger = logger;
             _config = config;
             _db = db;
-            //_factory = new ConnectionFactory() { HostName = _config["Services:EventService:HostName"], Port = int.Parse(_config["Services:EventService:Port"]) };
-            //replyQueueName = channel.QueueDeclare().QueueName;
-            //consumer = new EventingBasicConsumer(channel);
-
-            //props = channel.CreateBasicProperties();
-            //var correlationId = Guid.NewGuid().ToString();
-            //props.ReplyTo = replyQueueName;
-
-            //consumer.Received += (model, ea) =>
-            //{
-            //    byte[] body = ea.Body.ToArray();
-            //    string response = Encoding.UTF8.GetString(body);
-            //    if (ea.BasicProperties.CorrelationId == correlationId)
-            //    {
-            //        respQueue.Add(response);
-            //    }
-            //};
         }
 
         public override Task<ContentResponse> PublishArticle(Article request, ServerCallContext context)
         {
-            #region big comment
-            //Dictionary<string, object> dataDictionary = new Dictionary<string, object>()
-            //{
-            //    {
-            //        "Action",
-            //        "Publish"
-            //    },
-            //    {
-            //        "Article",
-            //        request
-            //    }
-            //};
-            //var messageBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(dataDictionary));
-            //channel.BasicPublish(exchange: "", routingKey: "rpc_queue", basicProperties: props, body: messageBytes);
+            var response = _db.AddToCollection(new AdditionRequest() { Collection = "WeltWerkArticles", DataJson = JsonConvert.SerializeObject(request) });
 
-            //channel.BasicConsume(
-            //    consumer: consumer,
-            //    queue: replyQueueName,
-            //    autoAck: true);
-
-            //return Task.FromResult(new ContentResponse()
-            //{
-            //    Message = "200"
-            //});
-            #endregion
-
-            var response = _db.AddToCollection(new AdditionRequest() { Collection = "Articles", DataJson = JsonConvert.SerializeObject(request) });
             return Task.FromResult(new ContentResponse()
             {
-                Message = $"[{response.MessageType}] {response.Message}"
+                Message = $"[{response.MessageType}] Uploaded article id: {response.Message}"
             });
         }
 
-        public override Task<ArticleResponse> GetArticle(ArticleRequest request, ServerCallContext context)
+        public override Task<Article> GetArticle(ArticleRequest request, ServerCallContext context)
         {
             DatabaseResponse response;
-            switch (request.ArticleCriteriaCase)
+            var builder = new FilterDefinitionBuilder<Article>();
+            response = _db.GetFromCollection(new CollectionRequest()
             {
-                case ArticleRequest.ArticleCriteriaOneofCase.None:
-                    response = _db.GetFromCollection(new CollectionRequest() { Collection = "Articles", CriteriaJson = "{}" });
-                    break;
-                case ArticleRequest.ArticleCriteriaOneofCase.Id:
-                    response = _db.GetFromCollection(new CollectionRequest() { Collection = "Articles", CriteriaJson = $"{{ \"id\": \"{request.Id}\" }}" });
-                    break;
-                case ArticleRequest.ArticleCriteriaOneofCase.Title:
-                    response = _db.GetFromCollection(new CollectionRequest() { Collection = "Articles", CriteriaJson = $"{{ \"id\": \"{request.Title}\" }}" });
-                    break;
-                default:
-                    response = new DatabaseResponse() { Message = "None", MessageType = MessageType.Error };
-                    break;
-            }
-            ArticleResponse article = (JsonConvert.DeserializeObject(response.Message) as List<ArticleResponse>).FirstOrDefault();
-            return Task.FromResult(article);
+                Collection = "WeltWerkArticles",
+                CriteriaJson = builder.Where(a => a.Id == request.Id).Render(BsonSerializer.SerializerRegistry.GetSerializer<Article>(), BsonSerializer.SerializerRegistry).ToJson()
+            });
+
+            return Task.FromResult(JsonConvert.DeserializeObject<Article>(response.Message));
         }
 
         public override Task<ArticlesResponse> GetArticles(None request, ServerCallContext context)
         {
-            DatabaseResponse response;
-            response = _db.GetFromCollection(new CollectionRequest() { Collection = "Articles", CriteriaJson = "{}" });
-            ArticlesResponse article = new ArticlesResponse();
-            List<Dictionary<string, object>> listOfDicts = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(response.Message);
-            foreach (Dictionary<string, object> dict in listOfDicts)
+            ArticlesResponse articles = new ArticlesResponse();
+            var response = _db.GetFromCollection(new CollectionRequest() { Collection = "WeltWerkArticles", CriteriaJson = "{}" });
+
+            List<Article> metadatas = JsonConvert.DeserializeObject<List<Article>>(response.Message);
+
+            foreach (var metadata in metadatas)
             {
-                var dicto = dict["PublishDate"].ToString();
-                article.Articles.Add(new ArticleResponse()
-                {
-                    Id = JsonConvert.DeserializeObject<Dictionary<string, string>>(dict["_id"].ToString())["$oid"].ToString(),
-                    Title = dict["Title"].ToString(),
-                    PublishDate = JsonConvert.DeserializeObject<Google.Protobuf.WellKnownTypes.Timestamp>(dict["PublishDate"].ToString()),
-                });
+                articles.Articles.Add(metadata);
             }
 
-            return Task.FromResult(article);
+            return Task.FromResult(articles);
         }
 
         public override Task<ContentResponse> DeleteArticle(ArticleRequest request, ServerCallContext context)
         {
             DatabaseResponse response;
-            switch (request.ArticleCriteriaCase)
-            {
-                case ArticleRequest.ArticleCriteriaOneofCase.None:
-                    response = _db.RemoveFromCollection(new CollectionRequest() { Collection = "Articles", CriteriaJson = "{}" });
-                    break;
-                case ArticleRequest.ArticleCriteriaOneofCase.Id:
-                    response = _db.RemoveFromCollection(new CollectionRequest() { Collection = "Articles", CriteriaJson = $"{{ \"id\": \"{request.Id}\" }}" });
-                    break;
-                case ArticleRequest.ArticleCriteriaOneofCase.Title:
-                    response = _db.RemoveFromCollection(new CollectionRequest() { Collection = "Articles", CriteriaJson = $"{{ \"id\": \"{request.Title}\" }}" });
-                    break;
-                default:
-                    response = new DatabaseResponse() { Message = "None", MessageType = MessageType.Error };
-                    break;
-            }
+            var builder = new FilterDefinitionBuilder<Article>();
+            response = _db.RemoveFromCollection(new CollectionRequest() { Collection = "WeltWerkArticles", CriteriaJson = builder.Where(a => a.Id == request.Id).Render(BsonSerializer.SerializerRegistry.GetSerializer<Article>(), BsonSerializer.SerializerRegistry).ToJson() });
             return Task.FromResult(new ContentResponse()
             {
                 Message = $"[{response.MessageType}] {response.Message}"
             });
         }
 
-        public override Task<ContentResponse> CreateCategory(Category request, ServerCallContext context)
+        public override Task<Categories> GetCategories(None request, ServerCallContext context)
         {
-            return Task.FromResult(new ContentResponse()
+            var response = _db.GetFromCollection(new CollectionRequest()
             {
-                Message = "[Error] Not implemented yet"
+                Collection = "WeltWerkArticles",
+                CriteriaJson = "{}"
+            });
+
+            Categories categories = new Categories();
+
+            List<MarkdownDocumentMetadata> metadatas = JsonConvert.DeserializeObject<List<MarkdownDocumentMetadata>>(response.Message);
+
+            foreach (var metadata in metadatas)
+            {
+                categories.Category.Add(metadata.Category);
+            }
+
+            return Task.FromResult(categories);
+        }
+
+        public override Task<DownloadDocumentResponse> DownloadDocument(DownloadDocumentRequest request, ServerCallContext context)
+        {
+            var response = _db.DownloadFile(new DownloadFileRequest()
+            {
+                Id = request.Id
+            });
+
+            return Task.FromResult(new DownloadDocumentResponse()
+            {
+                File = response.File
             });
         }
 
-        public override Task<ContentResponse> DeleteCategory(Category request, ServerCallContext context)
+        public override Task<UploadDocumentResponse> UploadDocument(UploadDocumentRequest request, ServerCallContext context)
         {
-            return Task.FromResult(new ContentResponse()
+            var response = _db.UploadFile(new UploadFileRequest()
             {
-                Message = "[Error] Not implemented yet"
+                File = request.File
+            });
+
+            return Task.FromResult(new UploadDocumentResponse()
+            {
+                Id = response.Id
+            });
+        }
+
+        public override Task<DownloadImageResponse> DownloadImage(DownloadImageRequest request, ServerCallContext context)
+        {
+            var data = _db.DownloadImage(new DatabaseManagementService.DownloadImageRequest()
+            {
+                Id = request.Id
+            });
+
+            return Task.FromResult(new DownloadImageResponse()
+            {
+                Image = data.File
+            });
+        }
+
+        public override Task<UploadImageResponse> UploadImage(UploadImageRequest request, ServerCallContext context)
+        {
+            var response = _db.UploadImage(new DatabaseManagementService.UploadImageRequest()
+            {
+                File = request.Image
+            });
+
+            return Task.FromResult(new UploadImageResponse()
+            {
+                Id = response.Id
             });
         }
     }

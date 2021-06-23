@@ -8,6 +8,10 @@ using Microsoft.Extensions.Configuration;
 using System.Text;
 using ContentService;
 using Newtonsoft.Json;
+using ContentService.Models;
+using Microsoft.AspNetCore.Http;
+using System.IO;
+using Google.Protobuf;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -17,7 +21,6 @@ namespace APIGateway.Controllers
     [ApiController]
     public class ContentController : ControllerBase
     {
-        //private readonly ConnectionFactory _factory;
         private readonly IConfiguration _config;
         private Content.ContentClient _content;
 
@@ -25,33 +28,102 @@ namespace APIGateway.Controllers
         {
             _config = config;
             _content = content;
-            //_factory = new ConnectionFactory() { HostName = _config["Services:EventService:HostName"], Port = int.Parse(_config["Services:EventService:Port"]) };
         }
         [HttpGet]
-        public IEnumerable<ArticleResponse> GetArticles()
+        public IEnumerable<Article> GetArticles()
         {
             return _content.GetArticles(new None()).Articles.ToList();
         }
         [HttpPut]
-        public void PutArticle([FromBody] object json)
+        public void PutArticle([FromBody] MarkdownDocumentMetadata json)
         {
-            //using (var connection = _factory.CreateConnection())
-            //using (var channel = connection.CreateModel())
+            //Dictionary<string, object> articleJson = JsonConvert.DeserializeObject<Dictionary<string, object>>(json.ToString());
+
+            //Article article = new()
             //{
-            //    channel.ExchangeDeclare(exchange: "general_topics", type: ExchangeType.Topic);
-
-            //    var body = Encoding.UTF8.GetBytes(json.ToString());
-            //}
-            Dictionary<string, object> articleJson = JsonConvert.DeserializeObject<Dictionary<string, object>>(json.ToString());
-
+            //    Title = articleJson["title"].ToString(),
+            //    CreatedAt = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(DateTime.Now.ToUniversalTime()),
+            //    EditedAt = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(DateTime.Now.ToUniversalTime()),
+            //    Author = articleJson["author"].ToString(),
+            //    Category = JsonConvert.DeserializeObject<Category>(articleJson["category"].ToString()),
+            //    Description = articleJson["description"].ToString(),
+            //    LastEditor = articleJson["last_editor"].ToString()
+            //};
             Article article = new()
             {
-                Title = articleJson["title"].ToString(),
-                PublishDate = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(DateTime.Now.ToUniversalTime())
+                Title = json.Title,
+                Author = json.Author,
+                CreatedAt = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(DateTime.UtcNow),
+                Category = json.Category,
+                Description = json.Description,
+                EditedAt = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(DateTime.UtcNow),
+                LastEditor = json.LastEditAuthor,
+                CustomElements = json.CustomElements,
+                FileId = json.FileId
             };
+            article.Tags.Add(json.Tags);
             _content.PublishArticle(article);
         }
 
+        [HttpPut("doc")]
+        public string UploadDocument(IFormFile doc)
+        {
+            if (doc != null)
+            {
+                byte[] docBin;
+                using (MemoryStream str = new MemoryStream())
+                {
+                    doc.OpenReadStream().CopyTo(str);
+                    docBin = str.ToArray();
+                }
+                var response = _content.UploadDocument(new UploadDocumentRequest() { File = Google.Protobuf.ByteString.CopyFrom(docBin) });
+                return response.Id;
+            }
+            return "Document should be uploaded";
+        }
+
+        [HttpGet("doc/{id}")]
+        public IActionResult DownloadDocument(string id)
+        {
+            var data = _content.DownloadDocument(new DownloadDocumentRequest() { Id = id });
+            return File(data.File.ToByteArray(), "text/markdown");
+        }
+
+        [HttpPut("image")]
+        public string UploadImage(IFormFile image)
+        {
+            if (image != null)
+            {
+                byte[] imageBin;
+                using (MemoryStream str = new MemoryStream())
+                {
+                    image.OpenReadStream().CopyTo(str);
+                    imageBin = str.ToArray();
+                }
+                var response = _content.UploadImage(new UploadImageRequest()
+                {
+                    Image = ByteString.CopyFrom(imageBin)
+                });
+                return response.Id;
+            }
+            return "Image should be uploaded";
+        }
+
+        [HttpGet("image/{id}")]
+        public IActionResult DownloadImage(string id)
+        {
+            var data = _content.DownloadImage(new DownloadImageRequest()
+            {
+                Id = id
+            });
+            return File(data.Image.ToByteArray(), "image/png");
+        }
+
+        [HttpDelete("doc/{id}")]
+        public void DeleteArticle(string id)
+        {
+            _content.DeleteArticle(new ArticleRequest() { Id = id });
+        }
 
         //// GET: api/<ContentController>
         //[HttpGet]

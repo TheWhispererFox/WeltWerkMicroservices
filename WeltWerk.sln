@@ -13,7 +13,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AnnouncementService", "Anno
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "APIGateway", "APIGateway\APIGateway.csproj", "{83AF0AAC-9B13-48F0-A2CF-C42B6360A2EF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WeltWerkContracts", "WeltWerkContracts\WeltWerkContracts.csproj", "{F89328A9-893A-42EB-A9EE-C5B6A2E0BAE4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AuthService", "AuthService\AuthService.csproj", "{251E0878-48FF-43E1-9549-36A27A442898}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -41,10 +41,10 @@ Global
 		{83AF0AAC-9B13-48F0-A2CF-C42B6360A2EF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{83AF0AAC-9B13-48F0-A2CF-C42B6360A2EF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{83AF0AAC-9B13-48F0-A2CF-C42B6360A2EF}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F89328A9-893A-42EB-A9EE-C5B6A2E0BAE4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F89328A9-893A-42EB-A9EE-C5B6A2E0BAE4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F89328A9-893A-42EB-A9EE-C5B6A2E0BAE4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F89328A9-893A-42EB-A9EE-C5B6A2E0BAE4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{251E0878-48FF-43E1-9549-36A27A442898}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{251E0878-48FF-43E1-9549-36A27A442898}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{251E0878-48FF-43E1-9549-36A27A442898}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{251E0878-48FF-43E1-9549-36A27A442898}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

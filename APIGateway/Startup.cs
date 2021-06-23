@@ -13,6 +13,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using ContentService;
 using System.Net.Http;
+using Microsoft.IdentityModel.Logging;
 
 namespace APIGateway
 {
@@ -28,7 +29,7 @@ namespace APIGateway
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-
+            IdentityModelEventSource.ShowPII = true;
             services.AddControllers().AddNewtonsoftJson();
             services.AddSwaggerGen(c =>
             {
@@ -43,6 +44,37 @@ namespace APIGateway
                 handler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => { return true; };
                 return handler;
             });
+            services.AddCors(options =>
+            {
+                options.AddPolicy("default", policy =>
+                {
+                    policy.AllowAnyOrigin()
+                    .AllowAnyMethod()
+                    .AllowAnyHeader();
+                });
+            });
+            if (!string.IsNullOrWhiteSpace(Configuration["Services:AuthService:Address"]))
+            {
+                services.AddAuthentication("Bearer")
+                    .AddJwtBearer(options =>
+                    {
+                        options.Authority = Configuration["Services:AuthService:Address"];
+                        options.RequireHttpsMetadata = false;
+
+                        options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+                        {
+                            ValidateAudience = false
+                        };
+                    });
+                services.AddAuthorization(options =>
+                {
+                    options.AddPolicy("ApiScope", policy =>
+                    {
+                        policy.RequireAuthenticatedUser();
+                        policy.RequireClaim("scope", "api-gateway");
+                    });
+                });
+            }
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -56,8 +88,12 @@ namespace APIGateway
             }
 
             app.UseHttpsRedirection();
+            app.UseCors("default");
 
             app.UseRouting();
+
+
+            app.UseAuthentication();
 
             app.UseAuthorization();
 

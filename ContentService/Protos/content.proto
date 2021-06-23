@@ -10,29 +10,31 @@ service Content {
   rpc PublishArticle (Article) returns (ContentResponse);
   rpc DeleteArticle (ArticleRequest) returns (ContentResponse);
   rpc UpdateArticle (Article) returns (ContentResponse);
-  rpc GetArticle (ArticleRequest) returns (ArticleResponse);
+  rpc GetArticle (ArticleRequest) returns (Article);
   rpc GetArticles (None) returns (ArticlesResponse);
-  rpc CreateCategory (Category) returns (ContentResponse);
-  rpc DeleteCategory (Category) returns (ContentResponse);
+  rpc GetCategories (None) returns (Categories);
+  rpc UploadDocument (UploadDocumentRequest) returns (UploadDocumentResponse);
+  rpc DownloadDocument (DownloadDocumentRequest) returns (DownloadDocumentResponse);
+  rpc UploadImage (UploadImageRequest) returns (UploadImageResponse);
+  rpc DownloadImage (DownloadImageRequest) returns (DownloadImageResponse);
 }
 
 message Article {
-	string title = 1;
-	google.protobuf.Timestamp publish_date = 2;
-	repeated Tag tags = 3;
-	Category category = 4;
-}
-
-message ArticleResponse {
 	string id = 1;
 	string title = 2;
-	google.protobuf.Timestamp publish_date = 3;
-	repeated Tag tags = 4;
-	Category category = 5;
+	string author = 3;
+	google.protobuf.Timestamp created_at = 4;
+	google.protobuf.Timestamp edited_at = 5;
+	string last_editor = 6;
+	repeated Tag tags = 7;
+	Category category = 8;
+	string custom_elements = 9;
+	string description = 10;
+	string file_id = 11;
 }
 
 message ArticlesResponse {
-	repeated ArticleResponse articles = 1;
+	repeated Article articles = 1;
 }
 
 message Tag {
@@ -44,10 +46,7 @@ message ContentResponse {
 }
 
 message ArticleRequest {
-	oneof ArticleCriteria {
-		string id = 1;
-		string title = 2;
-	}
+	string id = 1;
 }
 
 message ArticleUpdateRequest {
@@ -60,6 +59,40 @@ message Category {
 	string name = 2;
 }
 
-message None {
+message Categories {
+	repeated Category category = 1;
+}
 
+message None {}
+
+message UploadDocumentRequest {
+	bytes file = 1;
+}
+
+message UploadDocumentResponse {
+	string id = 1;
+}
+
+message DownloadDocumentRequest {
+	string id = 1;
+}
+
+message DownloadDocumentResponse {
+	bytes file = 1;
+}
+
+message UploadImageRequest {
+	bytes image = 1;
+}
+
+message UploadImageResponse {
+	string id = 1;
+}
+
+message DownloadImageRequest {
+	string id = 1;
+}
+
+message DownloadImageResponse {
+	bytes image = 1;
 }

@@ -10,8 +10,18 @@ services:
       context: .
       dockerfile: ContentService/Dockerfile
     ports:
-    - "5007:80"
-    - "5008:443"
+    - "6007:80"
+    - "6008:443"
+  authservice:
+    image: authservice
+    depends_on:
+        - databaseservice
+    build:
+      context: .
+      dockerfile: AuthService/Dockerfile
+    ports:
+    - "6009:80"
+    - "6010:443"
   apigateway:
     image: apigatewayservice
     depends_on:
@@ -21,8 +31,8 @@ services:
       context: .
       dockerfile: APIGateway/Dockerfile
     ports:
-    - "5001:80"
-    - "5002:443"
+    - "6001:80"
+    - "6002:443"
   announcementservice:
     image: announcementservice
     depends_on:
@@ -31,8 +41,8 @@ services:
       context: .
       dockerfile: AnnouncementService/Dockerfile
     ports:
-      - "5003:80"
-      - "5004:443"
+      - "6003:80"
+      - "6004:443"
   databaseservice:
     image: databasemanagementservice
     depends_on:
@@ -41,8 +51,8 @@ services:
       context: .
       dockerfile: DatabaseManagementService/Dockerfile
     ports:
-    - "5005:80"
-    - "5006:443"
+    - "6005:80"
+    - "6006:443"
   db:
     image: mongo
     restart: always

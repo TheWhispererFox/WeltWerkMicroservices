@@ -9,6 +9,10 @@ service DatabaseManagement {
   rpc RemoveFromCollection (CollectionRequest) returns (DatabaseResponse);
   rpc GetFromCollection (CollectionRequest) returns (DatabaseResponse);
   rpc UpdateCollection (AdditionRequest) returns (DatabaseResponse);
+  rpc UploadFile (UploadFileRequest) returns (UploadFileResponse);
+  rpc DownloadFile (DownloadFileRequest) returns (DownloadFileResponse);
+  rpc UploadImage (UploadImageRequest) returns (UploadImageResponse);
+  rpc DownloadImage (DownloadImageRequest) returns (DownloadImageResponse);
 }
 
 message DatabaseResponse {
@@ -30,4 +34,39 @@ message AdditionRequest {
 message CollectionRequest {
 	string collection = 1;
 	string criteria_json = 2;
+}
+
+message UploadFileRequest {
+	bytes file = 1;
+}
+
+message UploadFileResponse {
+	string id = 1;
+}
+
+message DownloadFileRequest {
+	string id = 1;
+}
+
+message DownloadFileResponse {
+	bytes file = 1;
+}
+
+message None {
+}
+
+message UploadImageRequest {
+	bytes file = 1;
+}
+
+message UploadImageResponse {
+	string id = 1;
+}
+
+message DownloadImageResponse {
+	bytes file = 1;
+}
+
+message DownloadImageRequest {
+	string id = 1;
 }
